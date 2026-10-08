@@ -10,7 +10,12 @@
 
       <el-form ref="formRef" :model="form" :rules="rules" size="large" @submit.prevent="onLogin">
         <el-form-item prop="username">
-          <el-input v-model="form.username" placeholder="请输入用户名" :prefix-icon="User" clearable />
+          <el-input
+            v-model="form.username"
+            placeholder="请输入用户名"
+            :prefix-icon="User"
+            clearable
+          />
         </el-form-item>
         <el-form-item prop="password">
           <el-input
@@ -35,59 +40,59 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { User, Lock } from '@element-plus/icons-vue'
-import { useUserStore } from '@/store/user'
+import { reactive, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
+import { User, Lock } from '@element-plus/icons-vue';
+import { useUserStore } from '@/store/user';
 
-const router = useRouter()
-const route = useRoute()
-const userStore = useUserStore()
+const router = useRouter();
+const route = useRoute();
+const userStore = useUserStore();
 
-const formRef = ref()
-const loading = ref(false)
+const formRef = ref();
+const loading = ref(false);
 const form = reactive({
   username: '',
   password: '',
-})
+});
 
 const rules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-}
+};
 
 const onLogin = async () => {
-  if (loading.value) return
+  if (loading.value) return;
   try {
-    await formRef.value.validate()
+    await formRef.value.validate();
   } catch {
-    return
+    return;
   }
 
-  loading.value = true
+  loading.value = true;
   try {
-    const res = await userStore.login(form.username, form.password)
+    const res = await userStore.login(form.username, form.password);
     if (!res.ok) {
-      ElMessage.error(res.msg)
-      return
+      ElMessage.error(res.msg);
+      return;
     }
     if (!userStore.isAdmin) {
-      ElMessage.warning('该账号不是管理员，无权限进入管理后台')
-      userStore.logout()
-      return
+      ElMessage.warning('该账号不是管理员，无权限进入管理后台');
+      userStore.logout();
+      return;
     }
-    ElMessage.success(`欢迎，${userStore.userInfo?.nickname}`)
-    const redirect = route.query.redirect
+    ElMessage.success(`欢迎，${userStore.userInfo?.nickname}`);
+    const redirect = route.query.redirect;
     if (redirect && redirect.startsWith('/')) {
-      router.push(redirect)
+      router.push(redirect);
     } else {
-      router.push('/admin/user')
+      router.push('/admin/user');
     }
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 </script>
 
 <style scoped>

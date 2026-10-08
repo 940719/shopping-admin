@@ -6,7 +6,14 @@
     </div>
 
     <div class="table-wrap">
-      <el-table :data="tableData" row-key="id" border stripe height="calc(100% - 60px)" style="width: 100%">
+      <el-table
+        :data="tableData"
+        row-key="id"
+        border
+        stripe
+        height="calc(100% - 60px)"
+        style="width: 100%"
+      >
         <el-table-column prop="name" label="类型名称" min-width="160" />
         <el-table-column prop="sort" label="排序" width="90" />
         <el-table-column label="类型图标" width="120">
@@ -17,7 +24,7 @@
         </el-table-column>
         <el-table-column label="创建时间" min-width="170">
           <template #default="{ row }">
-            {{ row.createTime }}
+            {{ $dayjs(row.createTime).format('YYYY-MM-DD HH:mm:ss') }}
           </template>
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
@@ -28,20 +35,39 @@
         </el-table-column>
       </el-table>
       <div class="table-pafination">
-        <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize" :page-sizes="[10, 20, 50, 100]"
-          :size="size" :disabled="disabled" background layout="total, sizes, prev, pager, next, jumper" :total="total"
-          @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :size="size"
+          :disabled="disabled"
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
       </div>
     </div>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog v-model="showEdit" :title="isEditMode ? '编辑类型' : '新增类型'" width="420px" destroy-on-close>
+    <el-dialog
+      v-model="showEdit"
+      :title="isEditMode ? '编辑类型' : '新增类型'"
+      width="420px"
+      destroy-on-close
+    >
       <el-form label-width="90px">
         <el-form-item label="类型名称">
           <el-input v-model="editing.name" placeholder="请输入类型名称" />
         </el-form-item>
         <el-form-item label="排序值">
-          <el-input-number v-model="editing.sort" :min="0" controls-position="right" style="width: 100%" />
+          <el-input-number
+            v-model="editing.sort"
+            :min="0"
+            controls-position="right"
+            style="width: 100%"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -53,98 +79,117 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { isImgUrl } from '@/utils/img'
-import { getCategoryList, postCategory, putCategoryById, deleteCategoryById } from '@/api/category'
+import { onMounted, ref } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { isImgUrl } from '@/utils/img';
+import {
+  getCategoryList,
+  addCategory,
+  updateCategoryById,
+  deleteCategoryById,
+} from '@/api/category';
 
-const tableData = ref([])
-const editing = ref(null)
-const isEditMode = ref(false)
-const showEdit = ref(false)
-const saving = ref(false)
+const tableData = ref([]);
+const editing = ref(null);
+const isEditMode = ref(false);
+const showEdit = ref(false);
+const saving = ref(false);
 
 const openAdd = () => {
-  editing.value = { name: '', sort: 0 }
-  isEditMode.value = false
-  showEdit.value = true
-}
+  editing.value = { name: '', sort: 0 };
+  isEditMode.value = false;
+  showEdit.value = true;
+};
 
 const editRow = (row) => {
-  editing.value = { ...row }
-  isEditMode.value = true
-  showEdit.value = true
-}
+  editing.value = { ...row };
+  isEditMode.value = true;
+  showEdit.value = true;
+};
 
 const saveRow = async () => {
-  if (!editing.value) return
+  if (!editing.value) return;
   if (!editing.value.name.trim()) {
-    ElMessage.warning('请输入类型名称')
-    return
+    ElMessage.warning('请输入类型名称');
+    return;
   }
-  saving.value = true
+  saving.value = true;
   try {
     if (isEditMode.value) {
-      await putCategoryById(editing.value.id, editing.value)
-      ElMessage.success('类型已更新')
+      const { code, msg } = await updateCategoryById(editing.value.id, editing.value);
+      if (code === 200) {
+        ElMessage.success('类型已更新');
+        showEdit.value = false;
+        await initCategoryList();
+        return;
+      }
+      ElMessage.error(msg);
+      return;
     } else {
-      await postCategory(editing.value)
-      ElMessage.success('类型已新增')
+      const { code, msg } = await addCategory(editing.value);
+      if (code === 200) {
+        ElMessage.success('类型已新增');
+        showEdit.value = false;
+        await initCategoryList();
+        return;
+      }
+      ElMessage.error(msg);
+      return;
     }
-    showEdit.value = false
-    await initCategoryList()
   } catch (error) {
-    console.error('保存类型失败：', error)
+    console.error('保存类型失败：', error);
     // 后端暂未提供增删改接口，给出明确提示
-    ElMessage.error(error.response?.data?.msg || error.message || '保存失败：后端接口未开通')
+    ElMessage.error(error.response?.data?.msg || error.message || '保存失败：后端接口未开通');
   } finally {
-    saving.value = false
+    saving.value = false;
   }
-}
+};
 
 const removeRow = async (row) => {
   try {
-    await ElMessageBox.confirm(`确定删除类型「${row.name}」吗？`, '删除类型', { type: 'warning' })
-  } catch {
-    return
-  }
-  try {
-    await deleteCategoryById(row.id)
-    ElMessage.success('已删除')
-    await initCategoryList()
+    // 确认弹窗
+    await ElMessageBox.confirm(`确定删除类型「${row.name}」吗？`, '删除类型', { type: 'warning' });
+    // 执行删除接口
+    await deleteCategoryById(row.id);
+    ElMessage.success('已删除');
+    await initCategoryList();
   } catch (error) {
-    console.error('删除类型失败：', error)
-    ElMessage.error(error.response?.data?.msg || error.message || '删除失败：后端接口未开通')
+    // 重点：ElMessageBox取消时 reject 值是 "cancel"，这种情况不报错提示
+    if (error === 'cancel') {
+      return;
+    }
+    console.error('删除类型失败：', error);
+    ElMessage.error(error.response?.data?.msg || error.message || '删除失败：后端接口未开通');
   }
-}
+};
 const currentPage = ref(1);
 const pageSize = ref(10);
 const size = ref('small');
 const disabled = ref(false);
 const total = ref(0);
 const handleCurrentChange = (newPage) => {
-  currentPage.value = newPage
-  initCategoryList()
+  currentPage.value = newPage;
+  initCategoryList();
 };
 const handleSizeChange = (newSize) => {
-  pageSize.value = newSize
-  initCategoryList()
+  pageSize.value = newSize;
+  initCategoryList();
 };
 const initCategoryList = async () => {
-  const params = { pageNum: currentPage.value, pageSize: pageSize.value }
-  const { data, code, msg } = await getCategoryList(params)
+  const params = { pageNum: currentPage.value, pageSize: pageSize.value };
+  const { data, code, msg } = await getCategoryList(params);
   if (code === 200) {
     tableData.value = data.list;
     total.value = data.total;
   } else {
-    console.error(msg)
-    ElMessage.error(msg || '获取类型列表失败')
+    console.error(msg);
+    ElMessage.error(msg || '获取类型列表失败');
   }
-}
+};
 
 onMounted(() => {
-  initCategoryList()
-})
+  initCategoryList();
+});
 </script>
 
 <style scoped>

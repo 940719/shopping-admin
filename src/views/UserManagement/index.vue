@@ -40,39 +40,41 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { getUserList, ROLE_MAP } from '@/api/user'
+import { onMounted, ref } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { getUserList, ROLE_MAP } from '@/api/user';
 
-const usersList = ref([])
+const usersList = ref([]);
 
 const toggleUser = (u) => {
-  u.status = u.status === 'normal' ? 'disabled' : 'normal'
-  ElMessage.success(u.status === 'normal' ? '已启用' : '已禁用')
-}
+  u.status = u.status === 'normal' ? 'disabled' : 'normal';
+  ElMessage.success(u.status === 'normal' ? '已启用' : '已禁用');
+};
 
 const removeUser = async (u) => {
   try {
-    await ElMessageBox.confirm(`确定删除用户「${u.nickname}」吗？`, '删除用户', { type: 'warning' })
+    await ElMessageBox.confirm(`确定删除用户「${u.nickname}」吗？`, '删除用户', {
+      type: 'warning',
+    });
   } catch {
-    return
+    return;
   }
-  usersList.value = usersList.value.filter((x) => x.id !== u.id)
-  ElMessage.success('已删除')
-}
+  usersList.value = usersList.value.filter((x) => x.id !== u.id);
+  ElMessage.success('已删除');
+};
 
 const initUserList = async () => {
-  const res = await getUserList()
+  const res = await getUserList();
   if (res.code === 200) {
-    usersList.value = res.data
+    usersList.value = res.data;
   } else {
-    ElMessage.error(res.msg || '获取用户列表失败')
+    ElMessage.error(res.msg || '获取用户列表失败');
   }
-}
+};
 
 onMounted(() => {
-  initUserList()
-})
+  initUserList();
+});
 </script>
 
 <style scoped>

@@ -29,7 +29,7 @@
           text-color="#444"
           active-text-color="#409eff"
         >
-          <el-menu-item v-for="item in adminRoutes" :key="item.path" :index="`/admin/${item.path}`">
+          <el-menu-item v-for="item in adminRoutes" :key="item.path" :index="`/${item.path}`">
             <el-icon><component :is="item.meta.icon" /></el-icon>
             <span>{{ item.meta.title }}</span>
           </el-menu-item>
@@ -45,38 +45,38 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { useUserStore } from '@/store/user'
-import { adminRoutes } from '@/router'
+import { computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { useUserStore } from '@/store/user';
+import { adminRoutes } from '@/router';
 
-const route = useRoute()
-const router = useRouter()
-const userStore = useUserStore()
+const route = useRoute();
+const router = useRouter();
+const userStore = useUserStore();
 
 const activeMenu = computed(() => {
   // 高亮当前子路由对应的菜单
-  const matched = adminRoutes.find((r) => route.path.startsWith(`/admin/${r.path}`))
-  return matched ? `/admin/${matched.path}` : '/admin/user'
-})
+  const matched = adminRoutes.find((r) => route.path.startsWith(`/${r.path}`));
+  return matched ? `/${matched.path}` : '/user';
+});
 
 const backToShop = () => {
   // 跳转到商城项目（开发环境为 5174，生产可配置为商城域名）
-  const shopUrl = import.meta.env.VITE_SHOP_URL || 'http://localhost:5174'
-  window.open(shopUrl, '_blank')
-}
+  const shopUrl = import.meta.env.VITE_SHOP_URL || 'http://localhost:5174';
+  window.open(shopUrl, '_blank');
+};
 
 const logout = async () => {
   try {
-    await ElMessageBox.confirm('确定退出登录吗？', '提示', { type: 'warning' })
+    await ElMessageBox.confirm('确定退出登录吗？', '提示', { type: 'warning' });
   } catch {
-    return
+    return;
   }
-  userStore.logout()
-  ElMessage.success('已退出登录')
-  router.push('/login')
-}
+  userStore.logout();
+  ElMessage.success('已退出登录');
+  router.push('/login');
+};
 </script>
 
 <style scoped>

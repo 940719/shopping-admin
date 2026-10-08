@@ -6,7 +6,14 @@
     </div>
 
     <div class="table-wrap">
-      <el-table :data="tableData" row-key="id" border stripe height="calc(100% - 60px)" style="width: 100%">
+      <el-table
+        :data="tableData"
+        row-key="id"
+        border
+        stripe
+        height="calc(100% - 60px)"
+        style="width: 100%"
+      >
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="name" label="商品名称" min-width="180" />
         <el-table-column label="图片" width="120">
@@ -32,13 +39,27 @@
         </el-table-column>
       </el-table>
       <div class="table-pafination">
-        <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize" :page-sizes="[10, 20, 50, 100]"
-          :size="size" :disabled="disabled" background layout="total, sizes, prev, pager, next, jumper" :total="total"
-          @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :size="size"
+          :disabled="disabled"
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
       </div>
 
       <!-- 商品编辑弹窗 -->
-      <el-dialog v-model="showEdit" :title="isEditMode ? '编辑商品' : '新增商品'" width="520px" destroy-on-close>
+      <el-dialog
+        v-model="showEdit"
+        :title="isEditMode ? '编辑商品' : '新增商品'"
+        width="520px"
+        destroy-on-close
+      >
         <el-form v-if="editing" label-width="90px">
           <el-form-item label="商品名称">
             <el-input v-model="editing.name" placeholder="请输入商品名称" />
@@ -46,36 +67,81 @@
           <el-form-item label="商品图片">
             <div class="img-upload">
               <span class="upload-thumb" :style="{ background: editing.bg }">
-                <img v-if="isImgUrl(editing.emoji)" :src="editing.emoji" class="upload-img" alt="" />
+                <img
+                  v-if="isImgUrl(editing.emoji)"
+                  :src="editing.emoji"
+                  class="upload-img"
+                  alt=""
+                />
                 <span v-else class="upload-emoji">{{ editing.emoji || '📦' }}</span>
               </span>
-              <el-button size="small" type="primary" plain :loading="uploading" @click="triggerUpload">
+              <el-button
+                size="small"
+                type="primary"
+                plain
+                :loading="uploading"
+                @click="triggerUpload"
+              >
                 上传图片
               </el-button>
-              <el-button v-if="editing.emoji" size="small" @click="editing.emoji = ''">移除</el-button>
-              <input ref="fileInputRef" type="file" accept="image/*" hidden @change="onFileChange" />
+              <el-button v-if="editing.emoji" size="small" @click="editing.emoji = ''"
+                >移除</el-button
+              >
+              <input
+                ref="fileInputRef"
+                type="file"
+                accept="image/*"
+                hidden
+                @change="onFileChange"
+              />
             </div>
           </el-form-item>
           <el-form-item label="现价">
-            <el-input-number v-model="editing.price" :min="0" :precision="2" controls-position="right"
-              style="width: 100%" />
+            <el-input-number
+              v-model="editing.price"
+              :min="0"
+              :precision="2"
+              controls-position="right"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item label="原价">
-            <el-input-number v-model="editing.originPrice" :min="0" :precision="2" controls-position="right"
-              style="width: 100%" />
+            <el-input-number
+              v-model="editing.originPrice"
+              :min="0"
+              :precision="2"
+              controls-position="right"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item label="秒杀价">
-            <el-input-number v-model="editing.flashPrice" :min="0" :precision="2" controls-position="right"
-              style="width: 100%" />
+            <el-input-number
+              v-model="editing.flashPrice"
+              :min="0"
+              :precision="2"
+              controls-position="right"
+              style="width: 100%"
+            />
             <div class="form-tip">0 表示不参与秒杀</div>
           </el-form-item>
           <el-form-item label="销量">
-            <el-input-number v-model="editing.sales" :min="0" controls-position="right" style="width: 100%" />
+            <el-input-number
+              v-model="editing.sales"
+              :min="0"
+              controls-position="right"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item label="图片背景">
             <div class="bg-list">
-              <span v-for="bg in GOODS_BG_PRESETS" :key="bg" class="bg-item" :class="{ active: editing.bg === bg }"
-                :style="{ background: bg }" @click="editing.bg = bg"></span>
+              <span
+                v-for="bg in GOODS_BG_PRESETS"
+                :key="bg"
+                class="bg-item"
+                :class="{ active: editing.bg === bg }"
+                :style="{ background: bg }"
+                @click="editing.bg = bg"
+              ></span>
             </div>
           </el-form-item>
         </el-form>
@@ -89,37 +155,37 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { GOODS_BG_PRESETS } from '@/store/goods'
-import { getProductList, postProduct, putProductById, uploadImage } from '@/api/product'
-import { isImgUrl } from '@/utils/img'
+import { onMounted, ref } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { GOODS_BG_PRESETS } from '@/store/goods';
+import { getProductList, postProduct, putProductById, uploadImage } from '@/api/product';
+import { isImgUrl } from '@/utils/img';
 
 /* ================= 表格 ================= */
-const tableData = ref([])
+const tableData = ref([]);
 
 const editGoods = (row) => {
-  editing.value = { ...row }
-  isEditMode.value = true
-  showEdit.value = true
-}
+  editing.value = { ...row };
+  isEditMode.value = true;
+  showEdit.value = true;
+};
 
 const removeGoods = async (row) => {
   try {
-    await ElMessageBox.confirm(`确定删除商品「${row.name}」吗？`, '删除商品', { type: 'warning' })
+    await ElMessageBox.confirm(`确定删除商品「${row.name}」吗？`, '删除商品', { type: 'warning' });
   } catch {
-    return
+    return;
   }
-  ElMessage.success('已删除')
-}
+  ElMessage.success('已删除');
+};
 
 /* ================= 编辑 / 新增 ================= */
-const editing = ref(null)
-const isEditMode = ref(false)
-const showEdit = ref(false)
-const saving = ref(false)
-const uploading = ref(false)
-const fileInputRef = ref()
+const editing = ref(null);
+const isEditMode = ref(false);
+const showEdit = ref(false);
+const saving = ref(false);
+const uploading = ref(false);
+const fileInputRef = ref();
 
 const openAdd = () => {
   editing.value = {
@@ -132,56 +198,56 @@ const openAdd = () => {
     originPrice: 129,
     flashPrice: 0,
     sales: 0,
-  }
-  isEditMode.value = false
-  showEdit.value = true
-}
+  };
+  isEditMode.value = false;
+  showEdit.value = true;
+};
 
 /* ================= 图片上传 ================= */
-const triggerUpload = () => fileInputRef.value?.click()
+const triggerUpload = () => fileInputRef.value?.click();
 
 const onFileChange = async (e) => {
-  const input = e.target
-  const file = input.files?.[0]
-  if (!file) return
+  const input = e.target;
+  const file = input.files?.[0];
+  if (!file) return;
   if (file.size > 5 * 1024 * 1024) {
-    ElMessage.warning('图片不能超过 5MB')
-    input.value = ''
-    return
+    ElMessage.warning('图片不能超过 5MB');
+    input.value = '';
+    return;
   }
-  uploading.value = true
+  uploading.value = true;
   try {
-    const { code, data } = await uploadImage(file)
+    const { code, data } = await uploadImage(file);
     if (code !== 200 || !data) {
-      ElMessage.error('上传失败')
-      return
+      ElMessage.error('上传失败');
+      return;
     }
-    if (editing.value) editing.value.emoji = data.url
-    ElMessage.success('图片已上传')
+    if (editing.value) editing.value.emoji = data.url;
+    ElMessage.success('图片已上传');
   } catch (error) {
-    console.error('图片上传失败：', error)
-    ElMessage.error('上传失败，请重试')
+    console.error('图片上传失败：', error);
+    ElMessage.error('上传失败，请重试');
   } finally {
-    uploading.value = false
-    input.value = ''
+    uploading.value = false;
+    input.value = '';
   }
-}
+};
 
 /* ================= 保存 ================= */
 const saveGoods = async () => {
-  if (!editing.value) return
-  const g = editing.value
+  if (!editing.value) return;
+  const g = editing.value;
   if (!g.name.trim()) {
-    ElMessage.warning('请输入商品名称')
-    return
+    ElMessage.warning('请输入商品名称');
+    return;
   }
   if (g.price <= 0 || g.originPrice <= 0) {
-    ElMessage.warning('价格必须大于 0')
-    return
+    ElMessage.warning('价格必须大于 0');
+    return;
   }
   if (g.flashPrice < 0) {
-    ElMessage.warning('秒杀价不能为负数')
-    return
+    ElMessage.warning('秒杀价不能为负数');
+    return;
   }
   const payload = {
     type: String(g.type),
@@ -190,56 +256,56 @@ const saveGoods = async () => {
     seckillPrice: g.flashPrice || null,
     emoji: g.emoji || null,
     originPrice: g.originPrice,
-  }
-  saving.value = true
+  };
+  saving.value = true;
   try {
     if (isEditMode.value) {
-      await putProductById(g.id, payload)
-      ElMessage.success('商品已更新')
+      await putProductById(g.id, payload);
+      ElMessage.success('商品已更新');
     } else {
-      await postProduct(payload)
-      ElMessage.success('商品已新增')
+      await postProduct(payload);
+      ElMessage.success('商品已新增');
     }
-    showEdit.value = false
-    await initProductList()
+    showEdit.value = false;
+    await initProductList();
   } catch (error) {
-    console.error('保存商品失败：', error)
-    ElMessage.error('保存失败，请重试')
+    console.error('保存商品失败：', error);
+    ElMessage.error('保存失败，请重试');
   } finally {
-    saving.value = false
+    saving.value = false;
   }
-}
+};
 const currentPage = ref(1);
 const pageSize = ref(10);
 const size = ref('small');
 const disabled = ref(false);
 const total = ref(0);
 const handleCurrentChange = (newPage) => {
-  currentPage.value = newPage
-  initCategoryList()
+  currentPage.value = newPage;
+  initProductList();
 };
 const handleSizeChange = (newSize) => {
-  pageSize.value = newSize
-  initCategoryList()
+  pageSize.value = newSize;
+  initProductList();
 };
 const initProductList = async () => {
   const params = { pageNum: currentPage.value, pageSize: pageSize.value };
   try {
-    const { code, data, msg } = await getProductList(params)
+    const { code, data, msg } = await getProductList(params);
     if (code !== 200) {
-      ElMessage.error(msg || '获取商品列表失败')
-      return
+      ElMessage.error(msg || '获取商品列表失败');
+      return;
     }
-    tableData.value = data.list
+    tableData.value = data.list;
     total.value = data.total;
   } catch (error) {
-    console.error('获取商品列表失败，错误信息：', error)
+    console.error('获取商品列表失败，错误信息：', error);
   }
-}
+};
 
 onMounted(() => {
-  initProductList()
-})
+  initProductList();
+});
 </script>
 
 <style scoped>
