@@ -64,7 +64,7 @@ router.beforeEach(async (to, _from, next) => {
       return;
     }
     // 未登录：尝试用 URL 携带的 token 免登录恢复（商城跳转场景）
-    const token = to.query.token;
+    const token = to.query.token || to.query.admin_token;
     if (token) {
       const ok = await userStore.loginWithToken(token);
       if (ok && userStore.isAdmin) {

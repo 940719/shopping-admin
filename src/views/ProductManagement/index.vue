@@ -61,6 +61,11 @@
         destroy-on-close
       >
         <el-form v-if="editing" label-width="90px">
+          <el-form-item label="商品类型">
+            <el-select v-model="editing.type" placeholder="请选择商品类型" style="width: 100%">
+              <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="String(c.id)" />
+            </el-select>
+          </el-form-item>
           <el-form-item label="商品名称">
             <el-input v-model="editing.name" placeholder="请输入商品名称" />
           </el-form-item>
@@ -159,10 +164,13 @@ import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { GOODS_BG_PRESETS } from '@/store/goods';
 import { getProductList, postProduct, putProductById, uploadImage } from '@/api/product';
+import { getCategoryList } from '@/api/category';
 import { isImgUrl } from '@/utils/img';
 
 /* ================= 表格 ================= */
 const tableData = ref([]);
+/* ================= 商品类型（来自分类接口） ================= */
+const categories = ref([]);
 
 const editGoods = (row) => {
   editing.value = { ...row };
@@ -191,7 +199,7 @@ const openAdd = () => {
   editing.value = {
     id: Date.now(),
     name: '新商品',
-    type: 1,
+    type: '',
     emoji: '',
     bg: GOODS_BG_PRESETS[0],
     price: 99,
@@ -239,6 +247,10 @@ const saveGoods = async () => {
   const g = editing.value;
   if (!g.name.trim()) {
     ElMessage.warning('请输入商品名称');
+  if (!g.type) {
+    ElMessage.warning('请选择商品类型');
+    return;
+  }
     return;
   }
   if (g.price <= 0 || g.originPrice <= 0) {
@@ -288,6 +300,17 @@ const handleSizeChange = (newSize) => {
   pageSize.value = newSize;
   initProductList();
 };
+const initCategoryList = async () => {
+  try {
+    const { code, data } = await getCategoryList({ pageNum: 1, pageSize: 100 });
+    if (code === 200) {
+      categories.value = data.list || [];
+    }
+  } catch (error) {
+    console.error('获取商品类型失败：', error);
+  }
+};
+
 const initProductList = async () => {
   const params = { pageNum: currentPage.value, pageSize: pageSize.value };
   try {
@@ -305,6 +328,7 @@ const initProductList = async () => {
 
 onMounted(() => {
   initProductList();
+  initCategoryList();
 });
 </script>
 
