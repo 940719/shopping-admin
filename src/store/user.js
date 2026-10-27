@@ -24,7 +24,7 @@ export const useUserStore = defineStore('user', {
   },
   actions: {
     /**
-     * 真实登录：调用后端 POST /api/login 校验数据库账号密码
+     * 真实登录：调用后端 POST /api/auth/login 校验数据库账号密码
      * 后端返回角色数字码：1 超级管理员 / 2 管理员 / 3 普通用户
      * 前端映射：1、2 → admin（可进入管理后台），3 → user（无权限）
      */

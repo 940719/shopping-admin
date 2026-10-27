@@ -19,22 +19,22 @@ export function getRoleLabel(code) {
 
 /**
  * 登录
- * POST /api/login  body: { name, password }
+ * POST /api/auth/login  body: { name, password }
  * 返回用户信息（不含密码），role 为角色数字码 1|2|3
  */
-export const login = (name, password) => post('/login', { name, password });
+export const login = (name, password) => post('/auth/login', { name, password });
 
-/** 用户列表 GET /api/users */
-export const getUserList = () => get('/users');
+/** 用户列表 GET /api/users/list */
+export const getUserList = () => get('/users/list');
 
-/** 新增用户 POST /api/user */
-export const postUser = (data) => post('/user', data);
+/** 新增用户 POST /api/users/add */
+export const postUser = (data) => post('/users/add', data);
 
-/** 查询单个用户 GET /api/user/:id */
-export const getUserById = (id) => get(`/user/${id}`);
+/** 查询单个用户 GET /api/users/detail/:id */
+export const getUserById = (id) => get(`/users/detail/${id}`);
 
-/** 修改用户 PUT /api/user/:id */
-export const putUserById = (id, data) => put(`/user/${id}`, data);
+/** 修改用户 PUT /api/users/update/:id */
+export const putUserById = (id, data) => put(`/users/update/${id}`, data);
 
-/** 删除用户 DELETE /api/user/:id */
-export const deleteUserById = (id) => del(`/user/${id}`);
+/** 删除用户 DELETE /api/users/delete/:id */
+export const deleteUserById = (id) => del(`/users/delete/${id}`);
