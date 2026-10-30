@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
-import { login as loginRequest, getUserById } from '@/api/user';
+import { login as loginRequest, restoreByToken } from '@/api/user';
 
-/** 从 localStorage 恢复登录态 */
+/** 从 localStorage 恢复登录态（统一使用 admin_token，与登录写入保持一致） */
 function readStored() {
   let userInfo = null;
   try {
@@ -11,7 +11,7 @@ function readStored() {
     userInfo = null;
   }
   return {
-    token: localStorage.getItem('token') || '',
+    token: localStorage.getItem('admin_token') || '',
     userInfo,
   };
 }
@@ -47,14 +47,14 @@ export const useUserStore = defineStore('user', {
       }
     },
     /**
-     * 免登录恢复：商城跳转时携带 token（形如 token-{用户id}），
-     * 管理端据此查询用户并恢复登录态（仅管理员可用，普通用户会被拦截）
+     * 免登录恢复：商城跳转时携带商城登录的 JWT（?admin_token={JWT}），
+     * 交给后端 POST /api/auth/restore 校验签名并返回用户信息
+     * （仅管理员放行，普通用户会被拦截）
      */
     async loginWithToken(token) {
-      const m = /^token-(\d+)$/.exec(token || '');
-      if (!m) return false;
+      if (!token) return false;
       try {
-        const res = await getUserById(m[1]);
+        const res = await restoreByToken(token);
         if (res.code !== 200 || !res.data) return false;
         const u = res.data;
         const role = u.role === 3 ? 'user' : 'admin';
@@ -62,7 +62,7 @@ export const useUserStore = defineStore('user', {
         if (role !== 'admin') return false;
         this.token = token;
         this.userInfo = { username: u.name, nickname: u.nickname || u.name, role };
-        localStorage.setItem('token', token);
+        localStorage.setItem('admin_token', token);
         localStorage.setItem('userInfo', JSON.stringify(this.userInfo));
         return true;
       } catch (error) {
@@ -73,6 +73,7 @@ export const useUserStore = defineStore('user', {
     logout() {
       this.token = '';
       this.userInfo = null;
+      localStorage.removeItem('admin_token');
       localStorage.removeItem('token');
       localStorage.removeItem('userInfo');
     },

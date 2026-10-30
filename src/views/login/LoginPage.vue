@@ -8,7 +8,7 @@
       <div class="login-title">账号登录</div>
       <div class="login-sub">请输入管理员账号与密码</div>
 
-      <el-form ref="formRef" :model="form" :rules="rules" size="large" @submit.prevent="onLogin">
+      <el-form ref="formRef" :model="form" :rules="rules" size="large">
         <el-form-item prop="username">
           <el-input
             v-model="form.username"

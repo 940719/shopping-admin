@@ -64,7 +64,10 @@ const activeMenu = computed(() => {
 const backToShop = () => {
   // 跳转到商城项目（开发环境为 5173，生产可配置为商城域名）
   const shopUrl = import.meta.env.VITE_SHOP_URL || 'http://localhost:5173';
-  window.open(shopUrl, '_blank');
+  // 已登录时携带商城 JWT（?token={JWT}），商城交由后端 /auth/restore 校验后免登录恢复
+  const token = userStore.token;
+  const url = token ? shopUrl + '/?token=' + encodeURIComponent(token) : shopUrl;
+  window.open(url, '_blank');
 };
 
 const logout = async () => {

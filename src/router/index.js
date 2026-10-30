@@ -28,7 +28,8 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/user', // 直接重定向到 /user ，最终地址：/admin/user
+      // 保留 query：商城跳转带 ?admin_token=token-{id}，重定向到 /user 时不能丢
+      redirect: (to) => ({ path: '/user', query: to.query }),
     },
     {
       path: '/login',
