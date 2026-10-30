@@ -163,7 +163,7 @@
 import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { GOODS_BG_PRESETS } from '@/store/goods';
-import { getProductList, postProduct, putProductById, uploadImage } from '@/api/product';
+import { getProductList, postProduct, putProductById, deleteProductById, uploadImage } from '@/api/product';
 import { getCategoryList } from '@/api/category';
 import { isImgUrl } from '@/utils/img';
 
@@ -181,10 +181,17 @@ const editGoods = (row) => {
 const removeGoods = async (row) => {
   try {
     await ElMessageBox.confirm(`确定删除商品「${row.name}」吗？`, '删除商品', { type: 'warning' });
-  } catch {
-    return;
+    await deleteProductById(row.id);
+    ElMessage.success('已删除');
+    await initProductList();
+  } catch(error) {
+        // 重点：ElMessageBox取消时 reject 值是 "cancel"，这种情况不报错提示
+    if (error === 'cancel') {
+      return;
+    }
+    console.error('删除商品失败：', error);
+    ElMessage.error(error.response?.data?.msg || error.message || '删除失败，请重试');
   }
-  ElMessage.success('已删除');
 };
 
 /* ================= 编辑 / 新增 ================= */
@@ -247,10 +254,10 @@ const saveGoods = async () => {
   const g = editing.value;
   if (!g.name.trim()) {
     ElMessage.warning('请输入商品名称');
-  if (!g.type) {
-    ElMessage.warning('请选择商品类型');
     return;
   }
+  if (!g.type) {
+    ElMessage.warning('请选择商品类型');
     return;
   }
   if (g.price <= 0 || g.originPrice <= 0) {

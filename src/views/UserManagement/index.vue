@@ -2,7 +2,10 @@
   <div class="panel">
     <div class="panel-header">
       <span class="panel-title">用户管理</span>
-      <span class="panel-count">共 {{ usersList.length }} 个用户</span>
+      <div class="header-right">
+        <span class="panel-count">共 {{ usersList.length }} 个用户</span>
+        <el-button type="danger" size="small" @click="openAdd">＋ 新增用户</el-button>
+      </div>
     </div>
 
     <div class="table-wrap">
@@ -36,14 +39,44 @@
         </el-table-column>
       </el-table>
     </div>
+
+    <!-- 新增用户弹窗 -->
+    <el-dialog v-model="showAdd" title="新增用户" width="420px" destroy-on-close>
+      <el-form label-width="80px">
+        <el-form-item label="用户名">
+          <el-input v-model="addForm.name" placeholder="请输入用户名" />
+        </el-form-item>
+        <el-form-item label="昵称">
+          <el-input v-model="addForm.nickname" placeholder="请输入昵称（不填默认用户名）" />
+        </el-form-item>
+        <el-form-item label="电话">
+          <el-input v-model="addForm.phone" placeholder="请输入手机号（选填）" />
+        </el-form-item>
+        <el-form-item label="角色">
+          <el-select v-model="addForm.role" style="width: 100%">
+            <el-option :value="2" label="管理员" />
+            <el-option :value="3" label="普通用户" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="密码">
+          <el-input v-model="addForm.password" placeholder="不填默认 123456" show-password />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showAdd = false">取消</el-button>
+        <el-button type="danger" :loading="saving" @click="saveAdd">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { getUserList, ROLE_MAP } from '@/api/user';
+import { getUserList, postUser, deleteUserById, ROLE_MAP } from '@/api/user';
+import { useUserStore } from '@/store/user';
 
+const userStore = useUserStore();
 const usersList = ref([]);
 
 const toggleUser = (u) => {
@@ -52,15 +85,72 @@ const toggleUser = (u) => {
 };
 
 const removeUser = async (u) => {
+  // 保护：不能删除当前登录账号（删了会把自己锁在后台外）
+  if (u.name === userStore.userInfo?.username) {
+    ElMessage.warning('不能删除当前登录的账号');
+    return;
+  }
+  // 保护：不能删除超级管理员（系统保护账号）
+  if (u.role === 1) {
+    ElMessage.warning('不能删除超级管理员账号');
+    return;
+  }
   try {
     await ElMessageBox.confirm(`确定删除用户「${u.nickname}」吗？`, '删除用户', {
       type: 'warning',
     });
-  } catch {
+    // 调用后端删除接口 DELETE /api/users/delete/:id
+    await deleteUserById(u.id);
+    ElMessage.success('已删除');
+    await initUserList();
+  } catch (error) {
+    // 重点：ElMessageBox取消时 reject 值是 "cancel"，这种情况不报错提示
+    if (error === 'cancel') {
+      return;
+    }
+    console.error('删除用户失败：', error);
+    ElMessage.error(error.response?.data?.msg || error.message || '删除失败，请重试');
+  }
+};
+
+/* ================= 新增用户 ================= */
+const showAdd = ref(false);
+const saving = ref(false);
+const addForm = ref({ name: '', nickname: '', phone: '', role: 3, password: '' });
+
+const openAdd = () => {
+  addForm.value = { name: '', nickname: '', phone: '', role: 3, password: '' };
+  showAdd.value = true;
+};
+
+const saveAdd = async () => {
+  const f = addForm.value;
+  if (!f.name.trim()) {
+    ElMessage.warning('请输入用户名');
     return;
   }
-  usersList.value = usersList.value.filter((x) => x.id !== u.id);
-  ElMessage.success('已删除');
+  saving.value = true;
+  try {
+    const { code, msg } = await postUser({
+      name: f.name.trim(),
+      nickname: f.nickname.trim() || undefined,
+      phone: f.phone.trim() || undefined,
+      role: f.role,
+      password: f.password || '123456',
+    });
+    if (code !== 200) {
+      ElMessage.error(msg || '新增失败');
+      return;
+    }
+    ElMessage.success('用户已新增');
+    showAdd.value = false;
+    await initUserList();
+  } catch (error) {
+    console.error('新增用户失败：', error);
+    ElMessage.error(error.response?.data?.msg || error.message || '新增失败，请重试');
+  } finally {
+    saving.value = false;
+  }
 };
 
 const initUserList = async () => {
@@ -94,6 +184,11 @@ onMounted(() => {
   justify-content: space-between;
   margin-bottom: 14px;
   flex-shrink: 0;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .panel-title {
   font-size: 16px;

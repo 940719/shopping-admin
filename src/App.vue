@@ -1,8 +1,18 @@
 <template>
-  <RouterView />
+  <suspense>
+    <template #default>
+      <RouterView />
+    </template>
+    <template #fallback>
+        <!-- 骨架屏，DOM 结构尽量与目标页一致，避免布局抖动 -->
+      <dashboard-skeleton />
+    </template>
+  </suspense>
 </template>
 
-<script setup></script>
+<script setup>
+import DashboardSkeleton from './components/DashboardSkeleton/index.vue'
+</script>
 
 <style>
 /* 全局基础样式 */

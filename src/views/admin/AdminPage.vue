@@ -62,20 +62,22 @@ const activeMenu = computed(() => {
 });
 
 const backToShop = () => {
-  // 跳转到商城项目（开发环境为 5174，生产可配置为商城域名）
-  const shopUrl = import.meta.env.VITE_SHOP_URL || 'http://localhost:5174';
+  // 跳转到商城项目（开发环境为 5173，生产可配置为商城域名）
+  const shopUrl = import.meta.env.VITE_SHOP_URL || 'http://localhost:5173';
   window.open(shopUrl, '_blank');
 };
 
 const logout = async () => {
   try {
     await ElMessageBox.confirm('确定退出登录吗？', '提示', { type: 'warning' });
-  } catch {
-    return;
+  } catch (error) {
+    if (error === 'cancel') {
+      return;
+    }
+    userStore.logout();
+    ElMessage.success('已退出登录');
+    router.push('/login');
   }
-  userStore.logout();
-  ElMessage.success('已退出登录');
-  router.push('/login');
 };
 </script>
 
