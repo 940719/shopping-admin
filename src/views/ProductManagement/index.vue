@@ -166,7 +166,6 @@
 
 <script setup>
 import { onMounted, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
 import { GOODS_BG_PRESETS } from '@/store/goods';
 import {
   getProductList,

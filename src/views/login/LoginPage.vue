@@ -42,8 +42,8 @@
 <script setup>
 import { reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
-import { User, Lock } from '@element-plus/icons-vue';
+// ElMessage 由 unplugin-auto-import 按需自动引入
+import { User, Lock, Shop } from '@element-plus/icons-vue';
 import { useUserStore } from '@/store/user';
 
 const router = useRouter();

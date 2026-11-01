@@ -1,15 +1,30 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { resolve } from 'path';
-
+import AutoImport from 'unplugin-auto-import/vite';
+import Components from 'unplugin-vue-components/vite';
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
 // https://vite.dev/config/
 export default defineConfig({
   base: '/admin/',
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    // Element Plus 按需自动导入 API（ElMessage / ElMessageBox 等）
+    AutoImport({
+      // 自动导入 Vue、Vue Router、Pinia 相关函数，如：ref、reactive、toRef 等
+      imports: ['vue', 'vue-router', 'pinia'],
+      resolvers: [ElementPlusResolver()],
+      dts: 'src/auto-imports.d.ts',
+    }),
+    // 模板中使用的 el-xxx 组件按需自动导入（含组件样式）
+    Components({
+      resolvers: [ElementPlusResolver()],
+      dts: 'src/components.d.ts',
+    }),
+  ],
   build: {
     rollupOptions: {
-      // 可选值：true / false / 'smallest' / 'safest'
-      treeshake: 'smallest',
+      treeshake: true,
       output: {
         manualChunks(id) {
           // 只处理 node_modules 里的第三方包

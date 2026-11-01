@@ -47,7 +47,8 @@
 <script setup>
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage, ElMessageBox } from 'element-plus';
+// ElMessage / ElMessageBox 由 unplugin-auto-import 按需自动引入
+import { Monitor, User } from '@element-plus/icons-vue';
 import { useUserStore } from '@/store/user';
 import { adminRoutes } from '@/router';
 

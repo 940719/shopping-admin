@@ -80,7 +80,6 @@
 
 <script setup>
 import { onMounted, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
 import { isImgUrl } from '@/utils/img';
 import {
   getCategoryList,

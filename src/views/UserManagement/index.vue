@@ -72,7 +72,7 @@
 
 <script setup>
 import { onMounted, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+// ElMessage / ElMessageBox 由 unplugin-auto-import 按需自动引入
 import { getUserList, postUser, deleteUserById, ROLE_MAP } from '@/api/user';
 import { useUserStore } from '@/store/user';
 

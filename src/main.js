@@ -1,9 +1,5 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
-import ElementPlus from 'element-plus';
-import zhCn from 'element-plus/es/locale/lang/zh-cn';
-import 'element-plus/dist/index.css';
-import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import App from './App.vue';
 import router from './router';
 import dayjs from 'dayjs';
@@ -11,7 +7,7 @@ import dayjs from 'dayjs';
 const app = createApp(App);
 app.config.globalProperties.$dayjs = dayjs;
 
+// 图标全部改为组件内按需引入（见 LoginPage / AdminPage），此处不再全局注册
 app.use(createPinia());
 app.use(router);
-app.use(ElementPlus, { locale: zhCn });
 app.mount('#app');
