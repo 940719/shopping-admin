@@ -14,13 +14,13 @@ export default defineConfig({
         manualChunks(id) {
           // 只处理 node_modules 里的第三方包
           if (id.includes('node_modules')) {
+            // UI库单独分包
+            if (id.includes('element-plus')) {
+              return 'vendor-element';
+            }
             // vue全家桶放一块
             if (id.includes('vue') || id.includes('vue-router') || id.includes('pinia')) {
               return 'vendor-vue';
-            }
-            // UI库单独分包
-            if (id.includes('element')) {
-              return 'vendor-element';
             }
             // 其余所有第三方依赖统一打包
             return 'vendor-other';

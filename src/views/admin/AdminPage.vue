@@ -73,13 +73,13 @@ const backToShop = () => {
 const logout = async () => {
   try {
     await ElMessageBox.confirm('确定退出登录吗？', '提示', { type: 'warning' });
+    userStore.logout();
+    ElMessage.success('已退出登录');
+    router.push('/login');
   } catch (error) {
     if (error === 'cancel') {
       return;
     }
-    userStore.logout();
-    ElMessage.success('已退出登录');
-    router.push('/login');
   }
 };
 </script>

@@ -1,7 +1,4 @@
-<script setup>
-</script>
+<script setup></script>
 <template>
-    <div>
-        lodding...
-    </div>
+  <div style="background-color: brown">lodding...</div>
 </template>

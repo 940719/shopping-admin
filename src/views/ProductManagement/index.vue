@@ -63,7 +63,12 @@
         <el-form v-if="editing" label-width="90px">
           <el-form-item label="商品类型">
             <el-select v-model="editing.type" placeholder="请选择商品类型" style="width: 100%">
-              <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="String(c.id)" />
+              <el-option
+                v-for="c in categories"
+                :key="c.id"
+                :label="c.name"
+                :value="String(c.id)"
+              />
             </el-select>
           </el-form-item>
           <el-form-item label="商品名称">
@@ -163,7 +168,13 @@
 import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { GOODS_BG_PRESETS } from '@/store/goods';
-import { getProductList, postProduct, putProductById, deleteProductById, uploadImage } from '@/api/product';
+import {
+  getProductList,
+  postProduct,
+  putProductById,
+  deleteProductById,
+  uploadImage,
+} from '@/api/product';
 import { getCategoryList } from '@/api/category';
 import { isImgUrl } from '@/utils/img';
 
@@ -184,8 +195,8 @@ const removeGoods = async (row) => {
     await deleteProductById(row.id);
     ElMessage.success('已删除');
     await initProductList();
-  } catch(error) {
-        // 重点：ElMessageBox取消时 reject 值是 "cancel"，这种情况不报错提示
+  } catch (error) {
+    // 重点：ElMessageBox取消时 reject 值是 "cancel"，这种情况不报错提示
     if (error === 'cancel') {
       return;
     }
@@ -275,6 +286,7 @@ const saveGoods = async () => {
     seckillPrice: g.flashPrice || null,
     emoji: g.emoji || null,
     originPrice: g.originPrice,
+    bg: g.bg,
   };
   saving.value = true;
   try {

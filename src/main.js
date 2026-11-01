@@ -10,10 +10,6 @@ import dayjs from 'dayjs';
 
 const app = createApp(App);
 app.config.globalProperties.$dayjs = dayjs;
-// 全局注册 Element Plus 图标
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(key, component);
-}
 
 app.use(createPinia());
 app.use(router);
