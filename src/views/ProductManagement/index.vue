@@ -57,7 +57,7 @@
       <el-dialog
         v-model="showEdit"
         :title="isEditMode ? '编辑商品' : '新增商品'"
-        width="520px"
+        width="720px"
         destroy-on-close
       >
         <el-form v-if="editing" label-width="90px">
@@ -154,6 +154,81 @@
               ></span>
             </div>
           </el-form-item>
+
+          <!-- 商品图集（多图，关联表） -->
+          <el-form-item label="商品图集">
+            <div class="gallery-box">
+              <div class="gallery-list">
+                <div v-for="(img, i) in editing.images" :key="i" class="gallery-item">
+                  <img :src="img" class="gallery-img" alt="" />
+                  <el-icon class="gallery-del" @click="editing.images.splice(i, 1)"><Close /></el-icon>
+                  <span class="gallery-order">{{ i + 1 }}</span>
+                </div>
+                <div class="gallery-add" @click="triggerGalleryUpload">
+                  <el-icon :class="{ loading: galleryUploading }"><Plus /></el-icon>
+                  <span>添加图片</span>
+                </div>
+              </div>
+              <div class="form-tip">可上传多张商品图，详情页将轮播展示（第一张为主图）</div>
+              <input
+                ref="galleryInputRef"
+                type="file"
+                accept="image/*"
+                hidden
+                @change="onGalleryFileChange"
+              />
+            </div>
+          </el-form-item>
+
+          <!-- 商品介绍（数组，每条可文字/图片） -->
+          <el-form-item label="商品介绍">
+            <div class="intro-box">
+              <div v-for="(item, i) in editing.intro" :key="i" class="intro-item">
+                <div class="intro-head">
+                  <el-radio-group v-model="item.type" size="small">
+                    <el-radio-button value="text">文字</el-radio-button>
+                    <el-radio-button value="image">图片</el-radio-button>
+                  </el-radio-group>
+                  <div class="intro-ops">
+                    <el-button size="small" text :disabled="i === 0" @click="moveIntro(i, -1)">上移</el-button>
+                    <el-button size="small" text :disabled="i === editing.intro.length - 1" @click="moveIntro(i, 1)">下移</el-button>
+                    <el-button size="small" type="danger" text @click="editing.intro.splice(i, 1)">删除</el-button>
+                  </div>
+                </div>
+                <div v-if="item.type === 'text'" class="intro-body">
+                  <el-input
+                    v-model="item.content"
+                    type="textarea"
+                    :rows="2"
+                    maxlength="1000"
+                    show-word-limit
+                    placeholder="输入介绍文字，如：高清音质，支持蓝牙5.3"
+                  />
+                </div>
+                <div v-else class="intro-body">
+                  <div class="intro-img-row">
+                    <img v-if="item.imageUrl" :src="item.imageUrl" class="intro-img" alt="" />
+                    <span v-else class="intro-img-empty">暂无图片</span>
+                    <el-button size="small" type="primary" plain :loading="introUploadingIndex === i" @click="triggerIntroUpload(i)">
+                      上传图片
+                    </el-button>
+                    <el-button v-if="item.imageUrl" size="small" @click="item.imageUrl = ''">移除</el-button>
+                  </div>
+                </div>
+              </div>
+              <el-button size="small" type="primary" plain class="intro-add" @click="addIntroItem">
+                ＋ 添加介绍条目
+              </el-button>
+              <div class="form-tip">介绍按顺序展示在详情页「商品介绍」区块，支持文字与图片混排</div>
+              <input
+                ref="introInputRef"
+                type="file"
+                accept="image/*"
+                hidden
+                @change="onIntroFileChange"
+              />
+            </div>
+          </el-form-item>
         </el-form>
         <template #footer>
           <el-button @click="showEdit = false">取消</el-button>
@@ -166,9 +241,11 @@
 
 <script setup>
 import { onMounted, ref } from 'vue';
+import { Plus, Close } from '@element-plus/icons-vue';
 import { GOODS_BG_PRESETS } from '@/store/goods';
 import {
   getProductList,
+  getProductById,
   postProduct,
   putProductById,
   deleteProductById,
@@ -182,10 +259,23 @@ const tableData = ref([]);
 /* ================= 商品类型（来自分类接口） ================= */
 const categories = ref([]);
 
-const editGoods = (row) => {
-  editing.value = { ...row };
+const editGoods = async (row) => {
+  editing.value = { ...row, images: [], intro: [] };
   isEditMode.value = true;
   showEdit.value = true;
+  // 编辑时拉详情，回显图集与介绍（关联表数据）
+  try {
+    const { code, data } = await getProductById(row.id);
+    if (code === 200 && data) {
+      editing.value = {
+        ...editing.value,
+        images: Array.isArray(data.images) ? data.images : [],
+        intro: Array.isArray(data.intro) ? data.intro : [],
+      };
+    }
+  } catch (error) {
+    console.error('拉取商品详情失败：', error);
+  }
 };
 
 const removeGoods = async (row) => {
@@ -223,6 +313,8 @@ const openAdd = () => {
     originPrice: 129,
     flashPrice: 0,
     sales: 0,
+    images: [],
+    intro: [],
   };
   isEditMode.value = false;
   showEdit.value = true;
@@ -258,6 +350,87 @@ const onFileChange = async (e) => {
   }
 };
 
+/* ================= 商品图集（多图）上传 ================= */
+const galleryInputRef = ref();
+const galleryUploading = ref(false);
+const triggerGalleryUpload = () => galleryInputRef.value?.click();
+
+const onGalleryFileChange = async (e) => {
+  const input = e.target;
+  const file = input.files?.[0];
+  if (!file) return;
+  input.value = '';
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.warning('图片不能超过 5MB');
+    return;
+  }
+  galleryUploading.value = true;
+  try {
+    const { code, data } = await uploadImage(file);
+    if (code !== 200 || !data) {
+      ElMessage.error('上传失败');
+      return;
+    }
+    editing.value.images.push(data.url);
+    ElMessage.success('图片已添加');
+  } catch (error) {
+    console.error('图片上传失败：', error);
+    ElMessage.error('上传失败，请重试');
+  } finally {
+    galleryUploading.value = false;
+  }
+};
+
+/* ================= 商品介绍（数组）维护 ================= */
+const introInputRef = ref();
+const introUploadingIndex = ref(-1);
+
+const addIntroItem = () => {
+  editing.value.intro.push({ type: 'text', content: '', imageUrl: '' });
+};
+
+const moveIntro = (i, dir) => {
+  const arr = editing.value.intro;
+  const j = i + dir;
+  if (j < 0 || j >= arr.length) return;
+  const t = arr[i];
+  arr[i] = arr[j];
+  arr[j] = t;
+};
+
+const triggerIntroUpload = (i) => {
+  introUploadingIndex.value = i;
+  introInputRef.value?.click();
+};
+
+const onIntroFileChange = async (e) => {
+  const input = e.target;
+  const file = input.files?.[0];
+  const idx = introUploadingIndex.value;
+  input.value = '';
+  introUploadingIndex.value = -1;
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.warning('图片不能超过 5MB');
+    return;
+  }
+  try {
+    const { code, data } = await uploadImage(file);
+    if (code !== 200 || !data) {
+      ElMessage.error('上传失败');
+      return;
+    }
+    if (editing.value.intro[idx]) {
+      editing.value.intro[idx].type = 'image';
+      editing.value.intro[idx].imageUrl = data.url;
+      ElMessage.success('图片已上传');
+    }
+  } catch (error) {
+    console.error('图片上传失败：', error);
+    ElMessage.error('上传失败，请重试');
+  }
+};
+
 /* ================= 保存 ================= */
 const saveGoods = async () => {
   if (!editing.value) return;
@@ -286,6 +459,15 @@ const saveGoods = async () => {
     emoji: g.emoji || null,
     originPrice: g.originPrice,
     bg: g.bg,
+    // 关联表数据：图集数组 + 介绍数组（每条 {type, content, imageUrl}）
+    images: (g.images || []).filter(Boolean),
+    intro: (g.intro || [])
+      .map((it) => ({
+        type: it.type === 'image' ? 'image' : 'text',
+        content: it.type === 'image' ? '' : it.content || '',
+        imageUrl: it.type === 'image' ? it.imageUrl || '' : '',
+      }))
+      .filter((it) => (it.type === 'image' ? it.imageUrl : it.content)),
   };
   saving.value = true;
   try {
@@ -464,5 +646,155 @@ onMounted(() => {
 .table-pafination {
   height: 60px;
   line-height: 60px;
+}
+
+/* ===== 商品图集 ===== */
+.gallery-box {
+  width: 100%;
+}
+
+.gallery-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gallery-item {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #ebeef5;
+}
+
+.gallery-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.gallery-del {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.gallery-order {
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 10px;
+  line-height: 14px;
+  padding: 0 4px;
+  border-radius: 4px;
+}
+
+.gallery-add {
+  width: 64px;
+  height: 64px;
+  border: 1px dashed #c0c4cc;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: #909399;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.gallery-add:hover {
+  border-color: #409eff;
+  color: #409eff;
+}
+
+.gallery-add .el-icon {
+  font-size: 20px;
+}
+
+.gallery-add .el-icon.loading {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== 商品介绍 ===== */
+.intro-box {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.intro-item {
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fafafa;
+}
+
+.intro-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.intro-ops {
+  display: flex;
+  align-items: center;
+}
+
+.intro-body {
+  width: 100%;
+}
+
+.intro-img-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.intro-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #ebeef5;
+}
+
+.intro-img-empty {
+  width: 64px;
+  height: 64px;
+  border: 1px dashed #c0c4cc;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #c0c4cc;
+}
+
+.intro-add {
+  align-self: flex-start;
 }
 </style>

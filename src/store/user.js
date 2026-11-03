@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { login as loginRequest, restoreByToken } from '@/api/user';
+import { login as loginRequest, restoreByToken, getMe } from '@/api/user';
 
 /** 从 localStorage 恢复登录态（统一使用 admin_token，与登录写入保持一致） */
 function readStored() {
@@ -21,6 +21,10 @@ export const useUserStore = defineStore('user', {
   getters: {
     isLogin: (s) => !!s.token && !!s.userInfo,
     isAdmin: (s) => s.userInfo?.role === 'admin',
+    /** 是否超级管理员（roleCode===1；兼容旧登录态：无 roleCode 时以账号 admin 兜底） */
+    isSuperAdmin: (s) =>
+      s.userInfo?.roleCode === 1 ||
+      (s.userInfo?.roleCode === undefined && s.userInfo?.role === 'admin' && s.userInfo?.username === 'admin'),
   },
   actions: {
     /**
@@ -37,7 +41,12 @@ export const useUserStore = defineStore('user', {
         const u = res.data;
         const role = u.role === 3 ? 'user' : 'admin';
         this.token = res.data.token;
-        this.userInfo = { username: u.name, nickname: u.nickname || u.name, role };
+        this.userInfo = {
+          username: u.name,
+          nickname: u.nickname || u.name,
+          role,
+          roleCode: u.role, // 数字角色码：1超管 2管理员 3普通用户
+        };
         localStorage.setItem('admin_token', this.token);
         localStorage.setItem('userInfo', JSON.stringify(this.userInfo));
         return { ok: true, msg: '' };
@@ -61,7 +70,12 @@ export const useUserStore = defineStore('user', {
         // 非管理员不恢复登录态（普通用户的 token 不能进入后台）
         if (role !== 'admin') return false;
         this.token = token;
-        this.userInfo = { username: u.name, nickname: u.nickname || u.name, role };
+        this.userInfo = {
+          username: u.name,
+          nickname: u.nickname || u.name,
+          role,
+          roleCode: u.role,
+        };
         localStorage.setItem('admin_token', token);
         localStorage.setItem('userInfo', JSON.stringify(this.userInfo));
         return true;
@@ -76,6 +90,28 @@ export const useUserStore = defineStore('user', {
       localStorage.removeItem('admin_token');
       localStorage.removeItem('token');
       localStorage.removeItem('userInfo');
+    },
+    /** 用后端 GET /auth/me 刷新当前用户信息（兼容旧登录态、权限实时准确） */
+    async refreshMe() {
+      try {
+        const res = await getMe();
+        if (res.code === 200 && res.data) {
+          const u = res.data;
+          const role = u.role === 3 ? 'user' : 'admin';
+          this.userInfo = {
+            username: u.name,
+            nickname: u.nickname || u.name,
+            role,
+            roleCode: u.role,
+            status: u.status,
+          };
+          localStorage.setItem('userInfo', JSON.stringify(this.userInfo));
+          return true;
+        }
+      } catch (error) {
+        /* 静默：接口失败不影响页面 */
+      }
+      return false;
     },
   },
 });

@@ -23,17 +23,21 @@
         </el-table-column>
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'normal' ? 'success' : 'info'" size="small">
-              {{ row.status === 'normal' ? '正常' : '禁用' }}
+            <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
+              {{ row.status === 1 ? '正常' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="注册时间" min-width="160" />
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" plain @click="toggleUser(row)">
-              {{ row.status === 'normal' ? '禁用' : '启用' }}
-            </el-button>
+            <!-- 仅超级管理员可见且非超管账号：禁用/启用 + 编辑 -->
+            <template v-if="userStore.isSuperAdmin && row.role !== 1">
+              <el-button size="small" type="primary" plain :loading="togglingId === row.id" @click="toggleUser(row)">
+                {{ row.status === 1 ? '禁用' : '启用' }}
+              </el-button>
+              <el-button size="small" type="warning" plain @click="openEdit(row)">编辑</el-button>
+            </template>
             <el-button size="small" type="danger" plain @click="removeUser(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -67,21 +71,79 @@
         <el-button type="danger" :loading="saving" @click="saveAdd">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 编辑用户弹窗（仅超级管理员） -->
+    <el-dialog v-model="showEdit" title="编辑用户" width="420px" destroy-on-close>
+      <el-form v-if="editForm" label-width="80px">
+        <el-form-item label="用户名">
+          <el-input :model-value="editForm.name" disabled />
+        </el-form-item>
+        <el-form-item label="昵称">
+          <el-input v-model="editForm.nickname" placeholder="请输入昵称" />
+        </el-form-item>
+        <el-form-item label="电话">
+          <el-input v-model="editForm.phone" placeholder="请输入手机号（选填）" />
+        </el-form-item>
+        <el-form-item label="角色">
+          <el-select v-model="editForm.role" style="width: 100%">
+            <el-option :value="2" label="管理员" />
+            <el-option :value="3" label="普通用户" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-switch
+            v-model="editForm.status"
+            :active-value="1"
+            :inactive-value="0"
+            active-text="启用"
+            inactive-text="禁用"
+          />
+        </el-form-item>
+        <el-form-item label="密码">
+          <el-input v-model="editForm.password" placeholder="留空则不修改密码" show-password />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showEdit = false">取消</el-button>
+        <el-button type="danger" :loading="savingEdit" @click="saveEdit">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue';
 // ElMessage / ElMessageBox 由 unplugin-auto-import 按需自动引入
-import { getUserList, postUser, deleteUserById, ROLE_MAP } from '@/api/user';
+import { getUserList, postUser, putUserById, deleteUserById, ROLE_MAP } from '@/api/user';
 import { useUserStore } from '@/store/user';
 
 const userStore = useUserStore();
 const usersList = ref([]);
 
-const toggleUser = (u) => {
-  u.status = u.status === 'normal' ? 'disabled' : 'normal';
-  ElMessage.success(u.status === 'normal' ? '已启用' : '已禁用');
+/* 禁用/启用（真实调后端，仅超管按钮可见，后端也做了权限校验） */
+const togglingId = ref(0);
+const toggleUser = async (u) => {
+  // 保护：不能操作超级管理员账号（后端也会拦截）
+  if (u.role === 1) {
+    ElMessage.warning('超级管理员账号受保护，不可禁用');
+    return;
+  }
+  const next = u.status === 1 ? 0 : 1;
+  togglingId.value = u.id;
+  try {
+    const { code, msg } = await putUserById(u.id, { status: next });
+    if (code !== 200) {
+      ElMessage.error(msg || '操作失败');
+      return;
+    }
+    u.status = next;
+    ElMessage.success(next === 1 ? '已启用' : '已禁用');
+  } catch (error) {
+    console.error('切换状态失败：', error);
+    ElMessage.error(error.response?.data?.msg || error.message || '操作失败，请重试');
+  } finally {
+    togglingId.value = 0;
+  }
 };
 
 const removeUser = async (u) => {
@@ -110,6 +172,56 @@ const removeUser = async (u) => {
     }
     console.error('删除用户失败：', error);
     ElMessage.error(error.response?.data?.msg || error.message || '删除失败，请重试');
+  }
+};
+
+/* ================= 编辑用户（仅超管） ================= */
+const showEdit = ref(false);
+const savingEdit = ref(false);
+const editForm = ref(null);
+
+const openEdit = (u) => {
+  // 保护：超管账号不可编辑（后端同样拦截）
+  if (u.role === 1) {
+    ElMessage.warning('超级管理员账号受保护，不可编辑');
+    return;
+  }
+  editForm.value = {
+    id: u.id,
+    name: u.name,
+    nickname: u.nickname || '',
+    phone: u.phone || '',
+    role: u.role,
+    status: u.status === 1 ? 1 : 0,
+    password: '',
+  };
+  showEdit.value = true;
+};
+
+const saveEdit = async () => {
+  const f = editForm.value;
+  if (!f) return;
+  savingEdit.value = true;
+  try {
+    const { code, msg } = await putUserById(f.id, {
+      nickname: f.nickname.trim() || undefined,
+      phone: f.phone.trim() || undefined,
+      role: f.role,
+      status: f.status,
+      password: f.password || undefined,
+    });
+    if (code !== 200) {
+      ElMessage.error(msg || '保存失败');
+      return;
+    }
+    ElMessage.success('用户已更新');
+    showEdit.value = false;
+    await initUserList();
+  } catch (error) {
+    console.error('编辑用户失败：', error);
+    ElMessage.error(error.response?.data?.msg || error.message || '保存失败，请重试');
+  } finally {
+    savingEdit.value = false;
   }
 };
 
@@ -163,6 +275,8 @@ const initUserList = async () => {
 };
 
 onMounted(() => {
+  // 刷新当前登录用户信息（获取数字角色码，决定超管按钮是否显示）
+  userStore.refreshMe();
   initUserList();
 });
 </script>
