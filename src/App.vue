@@ -18,7 +18,7 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn';
 import DashboardSkeleton from './components/DashboardSkeleton/index.vue';
 </script>
 
-<style>
+<style lang="scss">
 /* 全局基础样式 */
 html,
 body,
@@ -29,6 +29,13 @@ body,
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', sans-serif;
-  background: #f0f2f5;
+}
+
+/* 主题色：@include useTheme 会分别为 html[data-theme="light"] / [data-theme="dark"] 生成规则 */
+body {
+  @include useTheme($themes) {
+    background-color: getVar('bgColor');
+    color: getVar('textColor');
+  }
 }
 </style>

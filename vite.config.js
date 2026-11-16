@@ -50,6 +50,18 @@ export default defineConfig({
       '@': resolve(import.meta.dirname, './src'),
     },
   },
+  css: {
+    preprocessorOptions: {
+      // 全局注入主题变量文件：所有 .scss（含 .vue 的 <style lang="scss">）自动可用
+      // 注意：变量文件必须是 scss 花括号语法；注入内容会与源文件拼接成一行，
+      // 缩进语法（.sass）不支持一行多语句，故不能指向 .sass 文件
+      scss: {
+        // 用 @use 现代模块系统注入（@import 已被 Sass 废弃，会报 Deprecation Warning）
+        // as * 表示不建命名空间，$themes / useTheme / getVar 可直接使用
+        additionalData: `@use "@/assets/styles/index.scss" as *;`,
+      },
+    },
+  },
   server: {
     port: 5175, // 与商城项目（5173）区分开
     proxy: {
